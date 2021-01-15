@@ -13,7 +13,7 @@ source tcb-env-setup.sh
 The script will guide you through a series of yes or no questions. By the end the script will setup Torizoncore-builder with either the latest version of the tool found locally or online depending on your anwsers. On success you can then use the tool by running `torizoncore-builder`. Finally you must run this setup script every new terminal session as the `torizoncore-builder` command will not be retained through sessions.
 
 ### Advanced Usage and Options
-The script supports the following two options:
+The script supports the following options:
 
 - `-a <value>`           (a)uto mode 
                          With this flag enabled the script will automatically run with no need for user input. Valid values for <value> are either `remote` or `local`.

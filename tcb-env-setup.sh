@@ -1,4 +1,11 @@
-#!/bin/env bash
+#!/usr/bin/env bash
+
+# Check to make sure script is being sourced otherwise exit
+if [[ "$(basename -- "$0")" == "tcb-env-setup.sh" ]]; then
+    echo "Don't run $0, source it." 
+    exit 1
+fi
+
 
 # cleanup variables and functions used in script since script is meant to be sourced
 cleanup () {
@@ -21,7 +28,7 @@ cleanup
 
 # Usage help message
 print_usage () {
-    echo "Usage: source tcb-env-setup.sh <OPTIONS>"
+    echo "Usage: source tcb-env-setup.sh [OPTIONS]"
     echo "Options:"
     echo "-a <value>              (a)uto mode." 
     echo "                        With this flag enabled the script will automatically run with no need for user input. Valid values for <value> are either remote or local." 
@@ -50,13 +57,13 @@ do
     esac
 done
 # Check that only one flag is used at a time
-if [[ ! -z $source && ! -z $user_tag ]]
+if [[ -n $source && -n $user_tag ]]
 then
     echo "-a and -t are mutually exclusive please only use one flag at a time."
     return
 fi 
 # Check that only valid values are passed for -a flag
-if [[ ! -z $source && $source != "local" && $source != "remote" ]]
+if [[ -n $source && $source != "local" && $source != "remote" ]]
 then
     echo "Unrecognized value $source for -a"
     return
@@ -80,10 +87,10 @@ get_latest_tag () {
             fi
         fi
     done
-    return $latest
+    return "$latest"
 }
 
-get_latest_tag $remote_tags
+get_latest_tag "$remote_tags"
 latest_remote=$?
 
 # Figure out whether to use latest local or latest remote version of Tcore-builder based on either flags or user response
@@ -97,9 +104,9 @@ then
         * ) echo "Please answer yes or no."
             return;;
     esac
-elif [[ ! -z $local_tags && -z $source && -z $user_tag ]]
+elif [[ -n $local_tags && -z $source && -z $user_tag ]]
 then
-    get_latest_tag $local_tags
+    get_latest_tag "$local_tags"
     latest_local=$?
     read -p "Latest local version found as version: $latest_local. Use this? [y/n] " yn
     case $yn in
@@ -118,7 +125,7 @@ then
     esac
 elif [[ $source == "local" ]]
 then
-    get_latest_tag $local_tags
+    get_latest_tag "$local_tags"
     latest_local=$?
     if [[ $latest_local == "0" ]]
     then
@@ -131,7 +138,7 @@ elif [[ $source == "remote" ]]
 then
     pull_remote=true
     chosen_tag=$latest_remote
-elif [[ ! -z $user_tag ]]
+elif [[ -n $user_tag ]]
 then
     pull_remote=true
     chosen_tag=$user_tag 
@@ -142,10 +149,10 @@ echo -e "Setting up torizoncore-builder with version: $chosen_tag\n"
 
 if [[ $pull_remote == true ]]
 then    
-    docker pull torizon/torizoncore-builder:$chosen_tag
+    docker pull torizon/torizoncore-builder:"$chosen_tag"
 fi
 
-alias torizoncore-builder="docker run --rm -it -v $(pwd):/workdir -v storage:/storage -v /deploy --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:$chosen_tag"
+alias torizoncore-builder='docker run --rm -it -v $(pwd):/workdir -v storage:/storage -v /deploy --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
 
 echo -e "\nSetup complete. torizoncore-builder is now ready to use."
 
