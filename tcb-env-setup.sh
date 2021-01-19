@@ -12,6 +12,7 @@ cleanup () {
     unset OPTIND
     unset source
     unset user_tag
+    unset volumes
     unset remote_tags
     unset local_tags
     unset tag
@@ -40,18 +41,25 @@ print_usage () {
     echo "                        With this flag enabled the script will automatically run with no need for user input. Valid values for <version tag> can be found online here: https://registry.hub.docker.com/r/torizon/torizoncore-builder/tags?page=1&ordering=last_updated." 
     echo "                        Whatever <version tag> is provided will then be pulled from online." 
     echo "                        This flag is mutually exclusive with the -a flag." 
-    echo ""     
+    echo "" 
+    echo "-d                      (d)isable volumes."
+    echo "                        With this flag enabled the script will setup torizoncore-builder without Docker volumes."
+    echo "                        Meaning some torizoncore-builder commands will require additional directories to be passed as arguments."
+    echo "                        By default with this flag excluded torizoncore-builder is setup with Docker volumes."
+    echo "" 
     echo "-h                      (h)elp." 
     echo "                        Prints usage information." 
 }
 
 # Parse flags
 OPTIND=1
-while getopts a:t:h flag
+volumes=" -v /deploy "
+while getopts a:t:hd flag
 do
     case "${flag}" in
         a) source=${OPTARG};;
         t) user_tag=${OPTARG};;
+        d) volumes=" ";;
         h|*) print_usage 
            return;;
     esac
@@ -152,7 +160,7 @@ then
     docker pull torizon/torizoncore-builder:"$chosen_tag"
 fi
 
-alias torizoncore-builder='docker run --rm -it -v $(pwd):/workdir -v storage:/storage -v /deploy --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
+alias torizoncore-builder='docker run --rm -it'"$volumes"'-v $(pwd):/workdir -v storage:/storage --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
 
 echo -e "\nSetup complete. torizoncore-builder is now ready to use."
 

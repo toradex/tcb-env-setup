@@ -26,5 +26,10 @@ The script supports the following options:
                          Whatever <version tag> is provided will then be pulled from online.
                          This flag is mutually exclusive with the `-a` flag.
 
+- `-d`                   (d)isable volumes."
+                         With this flag enabled the script will setup torizoncore-builder without Docker volumes.
+                         Meaning some torizoncore-builder commands will require additional directories to be passed as arguments.
+                         By default with this flag excluded torizoncore-builder is setup with Docker volumes.
+
 - `-h`                   (h)elp
                          Prints usage information.
