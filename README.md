@@ -10,7 +10,7 @@ source tcb-env-setup.sh
 ```
 **IMPORTANT**: Make sure you execute the script by sourcing it as shown above. Executing it normally will cause certain parts of the setup to fail and most importantly the `torizoncore-builder` command will not be available to you.
 
-The script will guide you through a series of yes or no questions. By the end the script will setup Torizoncore-builder with either the latest version of the tool found locally or online depending on your anwsers. On success you can then use the tool by running `torizoncore-builder`. Finally you must run this setup script every new terminal session as the `torizoncore-builder` command will not be retained through sessions.
+The script will guide you through some yes/no prompts. By the end the script will setup Torizoncore-builder with either the latest version of the tool found locally or online depending on your anwsers. On success you can then use the tool by running `torizoncore-builder`. Finally you must run this setup script every new terminal session as the `torizoncore-builder` command will not be retained through sessions.
 
 ### Advanced Usage and Options
 The script supports the following options:

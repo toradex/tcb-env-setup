@@ -104,30 +104,19 @@ latest_remote=$?
 # Figure out whether to use latest local or latest remote version of Tcore-builder based on either flags or user response
 if [[ -z $local_tags  && -z $source && -z $user_tag ]]
 then
-    read -p "No local version found, do you want to pull the latest version online (latest version is $latest_remote)? [y/n] " yn
-    case $yn in
-        [Yy]* ) pull_remote=true
-            chosen_tag=$latest_remote;;
-        [Nn]* ) return;;
-        * ) echo "Please answer yes or no."
-            return;;
-    esac
+    echo "No local version found, pulling the latest version found online."
+    pull_remote=true
+    chosen_tag=$latest_remote
 elif [[ -n $local_tags && -z $source && -z $user_tag ]]
 then
     get_latest_tag "$local_tags"
     latest_local=$?
-    read -p "Latest local version found as version: $latest_local. Use this? [y/n] " yn
+    read -p "Latest local version found as version: $latest_local. Check for updates online instead? [y/n] " yn
     case $yn in
-        [Yy]* ) pull_remote=false
+        [Yy]* ) pull_remote=true
+            chosen_tag=$latest_remote;;
+        [Nn]* ) pull_remote=false 
             chosen_tag=$latest_local;;
-        [Nn]* ) read -p "Use latest version online instead? (latest version is $latest_remote) [y/n] " yn 
-            case $yn in
-                [Yy]* ) pull_remote=true 
-                    chosen_tag=$latest_remote;;
-                [Nn]* ) return;;
-                * ) echo "Please answer yes or no."
-                    return;;
-            esac;;
         * ) echo "Please answer yes or no."
             return;;
     esac
