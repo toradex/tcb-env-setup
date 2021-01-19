@@ -2,10 +2,9 @@
 
 # Check to make sure script is being sourced otherwise exit
 if [[ "$(basename -- "$0")" == "tcb-env-setup.sh" ]]; then
-    echo "Don't run $0, source it." 
+    echo "Error: don't run $0, source it."
     exit 1
 fi
-
 
 # cleanup variables and functions used in script since script is meant to be sourced
 cleanup () {
@@ -67,13 +66,13 @@ done
 # Check that only one flag is used at a time
 if [[ -n $source && -n $user_tag ]]
 then
-    echo "-a and -t are mutually exclusive please only use one flag at a time."
+    echo "Error: -a and -t are mutually exclusive. Please only use one flag at a time."
     return
 fi 
 # Check that only valid values are passed for -a flag
 if [[ -n $source && $source != "local" && $source != "remote" ]]
 then
-    echo "Unrecognized value $source for -a"
+    echo "Error: unrecognized value $source for -a"
     return
 fi
 
@@ -104,14 +103,14 @@ latest_remote=$?
 # Figure out whether to use latest local or latest remote version of Tcore-builder based on either flags or user response
 if [[ -z $local_tags  && -z $source && -z $user_tag ]]
 then
-    echo "No local version found, pulling the latest version found online."
+    echo "TorizonCore Builder is not installed. Pulling the latest version from Docker Hub..."
     pull_remote=true
     chosen_tag=$latest_remote
 elif [[ -n $local_tags && -z $source && -z $user_tag ]]
 then
     get_latest_tag "$local_tags"
     latest_local=$?
-    read -p "Latest local version found as version: $latest_local. Check for updates online instead? [y/n] " yn
+    read -p "You may have an outdated version installed. Would you like to check for updates online? [y/n] " yn
     case $yn in
         [Yy]* ) pull_remote=true
             chosen_tag=$latest_remote;;
@@ -126,7 +125,7 @@ then
     latest_local=$?
     if [[ $latest_local == "0" ]]
     then
-        echo "No local versions found!"
+        echo "Error: no local versions found!"
         return
     fi
     pull_remote=false
@@ -142,16 +141,24 @@ then
 fi
 
 # Sets up chosen version of Tcore-builder based on result from above
-echo -e "Setting up torizoncore-builder with version: $chosen_tag\n"
+echo -e "Setting up TorizonCore Builder with version $chosen_tag.\n"
 
 if [[ $pull_remote == true ]]
-then    
+then
+    echo -e "Pulling TorizonCore Builder..."
     docker pull torizon/torizoncore-builder:"$chosen_tag"
+    if [ $? == "0" ]; then
+        echo -e "Done!\n"
+    else
+        echo "Error: could not pull TorizonCore Builder from Docker Hub!"
+        return
+    fi
 fi
 
 alias torizoncore-builder='docker run --rm -it'"$volumes"'-v $(pwd):/workdir -v storage:/storage --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
 
-echo -e "\nSetup complete. torizoncore-builder is now ready to use."
+echo "Setup complete! TorizonCore Builder is now ready to use."
+echo "For more information, run 'torizoncore-builder -h' or go to https://developer.toradex.com/knowledge-base/torizoncore-builder-tool"
 
 cleanup
 unset -f cleanup
