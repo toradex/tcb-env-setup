@@ -1,13 +1,34 @@
 #!/usr/bin/env bash
 
 # Check to make sure script is being sourced otherwise exit
-if [[ "$(basename -- "$0")" == "tcb-env-setup.sh" ]]; then
+SOURCED=0
+
+# zsh
+if [ -n "$ZSH_EVAL_CONTEXT" ]; then
+    case $ZSH_EVAL_CONTEXT in *:file) SOURCED=1;; esac
+
+# ksh
+elif [ -n "$KSH_VERSION" ]; then
+    [ "$(cd $(dirname -- "$0") && pwd -P)/$(basename -- "$0")" != "$(cd $(dirname -- ${.sh.file}) && pwd -P)/$(basename -- ${.sh.file})" ] && SOURCED=1
+
+# bash
+elif [ -n "$BASH_VERSION" ]; then
+    (return 0 2>/dev/null) && SOURCED=1
+
+# All other shells: examine $0 for known shell binary filenames
+else
+    # Detects `sh` and `dash`; add additional shell filenames as needed.
+    case ${0##*/} in sh|dash) SOURCED=1;; esac
+fi
+
+# check if it was sourced
+if [ "$SOURCED" = "0" ]; then
     echo "Error: don't run $0, source it."
     exit 1
 fi
 
 # cleanup variables and functions used in script since script is meant to be sourced
-cleanup () {
+tcb_env_setup_cleanup () {
     unset OPTIND
     unset source
     unset user_tag
@@ -20,14 +41,14 @@ cleanup () {
     unset latest_local
     unset pull_remote
     unset chosen_tag
-    unset -f print_usage
-    unset -f get_latest_tag
+    unset -f tcb_env_setup_usage 2>/dev/null
+    unset -f get_latest_tag 2>/dev/null
 }
 
-cleanup
+tcb_env_setup_cleanup
 
 # Usage help message
-print_usage () {
+tcb_env_setup_usage () {
     echo "Usage: source tcb-env-setup.sh [OPTIONS]"
     echo "Options:"
     echo "-a <value>              (a)uto mode." 
@@ -51,40 +72,48 @@ print_usage () {
 }
 
 # Parse flags
-OPTIND=1
 volumes=" -v /deploy "
-while getopts a:t:hd flag
+while [[ $# -gt 0 ]]
 do
-    case "${flag}" in
-        a) source=${OPTARG};;
-        t) user_tag=${OPTARG};;
-        d) volumes=" ";;
-        h|*) print_usage 
-           return;;
+    case "$1" in
+        -a) source=$2;[ "$2" ]||source="empty"; shift; shift;;
+        -t) user_tag="$2";[ "$2" ]||user_tag="empty"; shift; shift;;
+        -d) volumes=" "; shift;;
+        -h|*) tcb_env_setup_usage; tcb_env_setup_cleanup; return;;
     esac
 done
+
+if [[ $source = "empty" ]] || [[ $user_tag = "empty" ]]
+then
+    tcb_env_setup_usage
+    tcb_env_setup_cleanup
+    return
+fi
+
 # Check that only one flag is used at a time
 if [[ -n $source && -n $user_tag ]]
 then
     echo "Error: -a and -t are mutually exclusive. Please only use one flag at a time."
+    tcb_env_setup_cleanup
     return
 fi 
 # Check that only valid values are passed for -a flag
 if [[ -n $source && $source != "local" && $source != "remote" ]]
 then
     echo "Error: unrecognized value $source for -a"
+    tcb_env_setup_cleanup
     return
 fi
 
 # Get list of image tags from docker hub
-remote_tags=$(curl -L -s 'https://registry.hub.docker.com/v1/repositories/torizon/torizoncore-builder/tags' | awk -F"[,:}]" '{for(i=1;i<=NF;i++){if($i~/'name'\042/){print $(i+1)}}}' | tr -d '"' | sed -n P)
+remote_tags=$(curl -L -s 'https://registry.hub.docker.com/v1/repositories/torizon/torizoncore-builder/tags' | awk -F"[,:}]" '{for(i=1;i<=NF;i++){if($i~/'name'\042/){print $(i+1)}}}' | tr -d '" ' | sed -n P)
 # Get list of image tags locally
 local_tags=$(docker images torizon/torizoncore-builder | sed -n 's/^.*torizoncore-builder\s\+\([0-9]\+\).*$/\1/p')
 
 # Determine the tag with the greatest numerical major revision
 get_latest_tag () {
     latest=0
-    for tag in $@
+    for tag in $(echo $@)
     do
         if [[ $tag != *"."* ]]
         then
@@ -110,13 +139,15 @@ elif [[ -n $local_tags && -z $source && -z $user_tag ]]
 then
     get_latest_tag "$local_tags"
     latest_local=$?
-    read -p "You may have an outdated version installed. Would you like to check for updates online? [y/n] " yn
+    echo -n "You may have an outdated version installed. Would you like to check for updates online? [y/n] "
+    read -r yn
     case $yn in
         [Yy]* ) pull_remote=true
             chosen_tag=$latest_remote;;
         [Nn]* ) pull_remote=false 
             chosen_tag=$latest_local;;
         * ) echo "Please answer yes or no."
+            tcb_env_setup_cleanup
             return;;
     esac
 elif [[ $source == "local" ]]
@@ -126,6 +157,7 @@ then
     if [[ $latest_local == "0" ]]
     then
         echo "Error: no local versions found!"
+        tcb_env_setup_cleanup
         return
     fi
     pull_remote=false
@@ -146,11 +178,11 @@ echo -e "Setting up TorizonCore Builder with version $chosen_tag.\n"
 if [[ $pull_remote == true ]]
 then
     echo -e "Pulling TorizonCore Builder..."
-    docker pull torizon/torizoncore-builder:"$chosen_tag"
-    if [ $? == "0" ]; then
+    if docker pull torizon/torizoncore-builder:"$chosen_tag"; then
         echo -e "Done!\n"
     else
         echo "Error: could not pull TorizonCore Builder from Docker Hub!"
+        tcb_env_setup_cleanup
         return
     fi
 fi
@@ -160,5 +192,5 @@ alias torizoncore-builder='docker run --rm -it'"$volumes"'-v $(pwd):/workdir -v 
 echo "Setup complete! TorizonCore Builder is now ready to use."
 echo "For more information, run 'torizoncore-builder -h' or go to https://developer.toradex.com/knowledge-base/torizoncore-builder-tool"
 
-cleanup
-unset -f cleanup
+tcb_env_setup_cleanup
+unset -f tcb_env_setup_cleanup 2>/dev/null
