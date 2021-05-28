@@ -190,7 +190,12 @@ fi
 alias torizoncore-builder='docker run --rm -it'"$volumes"'-v $(pwd):/workdir -v storage:/storage --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
 
 echo "Setup complete! TorizonCore Builder is now ready to use."
+echo "********************"
+echo "Important: When you run TorizonCore Builder, the tool can only access the files inside the current working directory. Files and directories outside of the current working directory, or links to files and directories outside of the current working directory, won't be visible to TorizonCore Builder. So please make sure that, when running TorizonCore Builder, all files and directories passed as parameters are within the current working directory."
+echo "Your current working directory is: $(pwd)"
+echo "********************"
 echo "For more information, run 'torizoncore-builder -h' or go to https://developer.toradex.com/knowledge-base/torizoncore-builder-tool"
+
 
 tcb_env_setup_cleanup
 unset -f tcb_env_setup_cleanup 2>/dev/null
