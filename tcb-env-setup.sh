@@ -187,6 +187,14 @@ then
     fi
 fi
 
+# if installing latest version, download and source the bash completion script
+if [[ "$chosen_tag" == "$latest_remote" ]]
+then
+    if wget -q https://raw.githubusercontent.com/toradex/tcb-env-setup/master/torizoncore-builder-completion.bash 2>/dev/null; then
+        source ./torizoncore-builder-completion.bash 2>/dev/null && rm -rf torizoncore-builder-completion.bash
+    fi
+fi
+
 alias torizoncore-builder='docker run --rm -it'"$volumes"'-v $(pwd):/workdir -v storage:/storage --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
 
 echo "Setup complete! TorizonCore Builder is now ready to use."
