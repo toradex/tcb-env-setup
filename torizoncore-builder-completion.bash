@@ -5,7 +5,6 @@ TCB_COMP_ARGS_MAIN="
     --verbose
     --log-level
     --log-file
-    --storage-directory
     -v --version
     build
     bundle
@@ -889,14 +888,6 @@ _torizoncore-builder_completions() {
             --log-file)
                 if [ "$i" -eq "$COMP_CWORD" ]; then
                     _torizoncore-builder_completions_helper_filter_files_and_dirs "*"
-                    return
-                else
-                    i=$((i + 1))
-                fi
-                ;;
-            --storage-directory)
-                if [ "$i" -eq "$COMP_CWORD" ]; then
-                    _torizoncore-builder_completions_helper_filter_dirs
                     return
                 else
                     i=$((i + 1))
