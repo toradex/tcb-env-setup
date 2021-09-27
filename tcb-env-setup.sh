@@ -32,6 +32,7 @@ tcb_env_setup_cleanup () {
     unset OPTIND
     unset source
     unset user_tag
+    unset storage
     unset volumes
     unset remote_tags
     unset local_tags
@@ -51,39 +52,45 @@ tcb_env_setup_cleanup
 tcb_env_setup_usage () {
     echo "Usage: source tcb-env-setup.sh [OPTIONS]"
     echo "Options:"
-    echo "-a <value>              (a)uto mode." 
-    echo "                        With this flag enabled the script will automatically run with no need for user input. Valid values for <value> are either remote or local." 
-    echo "                        When -a remote is passed the script will automatically use the latest version of TorizonCore Builder online, with no consideration for any local versions that may exist." 
-    echo "                        When -a local is passed the script will automatically use the latest version of TorizonCore Builder found locally, with no consideration to what may be online." 
-    echo "                        This flag is mutually exclusive with the -t flag." 
-    echo ""    
+    echo "-a <value>              (a)uto mode."
+    echo "                        With this flag enabled the script will automatically run with no need for user input. Valid values for <value> are either remote or local."
+    echo "                        When -a remote is passed the script will automatically use the latest version of TorizonCore Builder online, with no consideration for any local versions that may exist."
+    echo "                        When -a local is passed the script will automatically use the latest version of TorizonCore Builder found locally, with no consideration to what may be online."
+    echo "                        This flag is mutually exclusive with the -t flag."
+    echo ""
     echo "-t <version tag>        (t)ag mode."
-    echo "                        With this flag enabled the script will automatically run with no need for user input. Valid values for <version tag> can be found online here: https://registry.hub.docker.com/r/torizon/torizoncore-builder/tags?page=1&ordering=last_updated." 
-    echo "                        Whatever <version tag> is provided will then be pulled from online." 
-    echo "                        This flag is mutually exclusive with the -a flag." 
-    echo "" 
+    echo "                        With this flag enabled the script will automatically run with no need for user input. Valid values for <version tag> can be found online here: https://registry.hub.docker.com/r/torizon/torizoncore-builder/tags?page=1&ordering=last_updated."
+    echo "                        Whatever <version tag> is provided will then be pulled from online."
+    echo "                        This flag is mutually exclusive with the -a flag."
+    echo ""
     echo "-d                      (d)isable volumes."
     echo "                        With this flag enabled the script will setup torizoncore-builder without Docker volumes."
     echo "                        Meaning some torizoncore-builder commands will require additional directories to be passed as arguments."
     echo "                        By default with this flag excluded torizoncore-builder is setup with Docker volumes."
-    echo "" 
-    echo "-h                      (h)elp." 
-    echo "                        Prints usage information." 
+    echo ""
+    echo "-s                      (s)torage directory."
+    echo "                        Internal directory that TorizonCore Builder should use to keep its state information."
+    echo "                        If this flag was not set, the \"storage\" Docker volume will be used."
+    echo ""
+    echo "-h                      (h)elp."
+    echo "                        Prints usage information."
 }
 
 # Parse flags
 volumes=" -v /deploy "
+storage="storage"
 while [[ $# -gt 0 ]]
 do
     case "$1" in
         -a) source=$2;[ "$2" ]||source="empty"; shift; shift;;
         -t) user_tag="$2";[ "$2" ]||user_tag="empty"; shift; shift;;
+        -s) storage="$2";[ "$2" ]||storage="empty"; shift; shift;;
         -d) volumes=" "; shift;;
         -h|*) tcb_env_setup_usage; tcb_env_setup_cleanup; return;;
     esac
 done
 
-if [[ $source = "empty" ]] || [[ $user_tag = "empty" ]]
+if [[ $source = "empty" ]] || [[ $user_tag = "empty" ]] || [[ $storage = "empty" ]]
 then
     tcb_env_setup_usage
     tcb_env_setup_cleanup
@@ -96,11 +103,18 @@ then
     echo "Error: -a and -t are mutually exclusive. Please only use one flag at a time."
     tcb_env_setup_cleanup
     return
-fi 
+fi
 # Check that only valid values are passed for -a flag
 if [[ -n $source && $source != "local" && $source != "remote" ]]
 then
     echo "Error: unrecognized value $source for -a"
+    tcb_env_setup_cleanup
+    return
+fi
+# Check that storage directory passed to -s flag exists
+if [[ $storage != "storage" && ! -d $storage ]]
+then
+    echo "Error: $storage storage directory does not exist."
     tcb_env_setup_cleanup
     return
 fi
@@ -144,7 +158,7 @@ then
     case $yn in
         [Yy]* ) pull_remote=true
             chosen_tag=$latest_remote;;
-        [Nn]* ) pull_remote=false 
+        [Nn]* ) pull_remote=false
             chosen_tag=$latest_local;;
         * ) echo "Please answer yes or no."
             tcb_env_setup_cleanup
@@ -169,7 +183,7 @@ then
 elif [[ -n $user_tag ]]
 then
     pull_remote=true
-    chosen_tag=$user_tag 
+    chosen_tag=$user_tag
 fi
 
 # Sets up chosen version of Tcore-builder based on result from above
@@ -195,7 +209,7 @@ then
     fi
 fi
 
-alias torizoncore-builder='docker run --rm -it'"$volumes"'-v $(pwd):/workdir -v storage:/storage --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
+alias torizoncore-builder='docker run --rm -it'"$volumes"'-v $(pwd):/workdir -v '"$storage"':/storage --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
 
 echo "Setup complete! TorizonCore Builder is now ready to use."
 echo "********************"

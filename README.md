@@ -31,5 +31,9 @@ The script supports the following options:
                          Meaning some torizoncore-builder commands will require additional directories to be passed as arguments.
                          By default with this flag excluded torizoncore-builder is setup with Docker volumes.
 
+- `-s`                   (s)torage directory.
+                         Internal directory that TorizonCore Builder should use to keep its state information.
+                         If this flag was not set, the "storage" Docker volume will be used.
+
 - `-h`                   (h)elp
                          Prints usage information.
