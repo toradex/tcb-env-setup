@@ -73,6 +73,7 @@ TCB_COMP_ARGS_DEPLOY="
     --remote-username
     --remote-username
     --remote-password
+    --remote-port
     --mdns-source
     --reboot
     --deploy-sysroot-directory
@@ -137,6 +138,7 @@ TCB_COMP_ARGS_DTO_DEPLOY="
     --remote-host
     --remote-username
     --remote-password
+    --remote-port
     --reboot
     --mdns-source
     --include-dir
@@ -157,6 +159,7 @@ TCB_COMP_ARGS_IMAGES_DOWNLOAD="
     --remote-host
     --remote-username
     --remote-password
+    --remote-port
     --mdns-source
 "
 
@@ -171,6 +174,7 @@ TCB_COMP_ARGS_ISOLATE="
     --remote-host
     --remote-username
     --remote-password
+    --remote-port
     --mdns-source
 "
 
@@ -238,6 +242,7 @@ TCB_COMP_ARGS_DEF_IMAGE_DESCRIPTION="_TYPE_HERE_IMAGE_DESCRIPTION_"
 TCB_COMP_ARGS_DEF_REMOTE_HOST="_TYPE_HERE_REMOTE_HOST_"
 TCB_COMP_ARGS_DEF_REMOTE_USERNAME="torizon"
 TCB_COMP_ARGS_DEF_REMOTE_PASSWORD="_TYPE_HERE_PASSWORD_"
+TCB_COMP_ARGS_DEF_REMOTE_PORT="_TYPE_HERE_REMOTE_PORT_"
 TCB_COMP_ARGS_DEF_MDNS_SOURCE="_TYPE_HERE_MDNS_SOURCE_"
 TCB_COMP_ARGS_DEF_KERNEL_ARGS="ARG1=VAL1"
 TCB_COMP_ARGS_DEF_HARDWAREIDS="_TYPE_HERE_HARDWARE_IDS_"
@@ -441,6 +446,9 @@ _torizoncore-builder_completions_deploy() {
         --remote-password)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REMOTE_PASSWORD"
             ;;
+        --remote-port)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REMOTE_PORT"
+            ;;
         --mdns-source)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_MDNS_SOURCE"
             ;;
@@ -582,6 +590,9 @@ _torizoncore-builder_completions_dto_deploy() {
         --remote-password)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REMOTE_PASSWORD"
             ;;
+        --remote-port)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REMOTE_PORT"
+            ;;
         --mdns-source)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_MDNS_SOURCE"
             ;;
@@ -661,6 +672,9 @@ _torizoncore-builder_completions_images_download() {
         --remote-password)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REMOTE_PASSWORD"
             ;;
+        --remote-port)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REMOTE_PORT"
+            ;;
         --mdns-source)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_MDNS_SOURCE"
             ;;
@@ -703,6 +717,9 @@ _torizoncore-builder_completions_isolate() {
             ;;
         --remote-password)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REMOTE_PASSWORD"
+            ;;
+        --remote-port)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REMOTE_PORT"
             ;;
         --mdns-source)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_MDNS_SOURCE"
