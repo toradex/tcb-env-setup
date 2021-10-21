@@ -151,6 +151,7 @@ TCB_COMP_ARGS_IMAGES="
     --help
     --remove-storage
     download
+    serve
     unpack
 "
 
@@ -164,6 +165,10 @@ TCB_COMP_ARGS_IMAGES_DOWNLOAD="
 "
 
 TCB_COMP_ARGS_IMAGES_UNPACK="
+    --help
+"
+
+TCB_COMP_ARGS_IMAGES_SERVE="
     --help
 "
 
@@ -684,6 +689,23 @@ _torizoncore-builder_completions_images_download() {
     esac
 }
 
+# 'images serve' command
+_torizoncore-builder_completions_images_serve() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    local prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+    case "$prev" in
+        *)
+            if [ -n "$cur" ]; then
+                _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_IMAGES_SERVE"
+            fi
+            if [ -z "$COMPREPLY" ]; then
+                _torizoncore-builder_completions_helper_filter_dirs
+            fi
+            ;;
+    esac
+}
+
 # 'images' command
 _torizoncore-builder_completions_images() {
     local cmd=$(_torizoncore-builder_completions_helper_find_subcmd "images" "$TCB_COMP_ARGS_IMAGES")
@@ -694,6 +716,9 @@ _torizoncore-builder_completions_images() {
             ;;
         download)
             _torizoncore-builder_completions_images_download
+            ;;
+        serve)
+            _torizoncore-builder_completions_images_serve
             ;;
         *)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_IMAGES"
