@@ -223,6 +223,10 @@ TCB_COMP_ARGS_PUSH="
     --credentials
     --repo
     --hardwareid
+    --canonicalize
+    --no-canonicalize
+    --canonicalize-only
+    --force
     --verbose
 "
 
