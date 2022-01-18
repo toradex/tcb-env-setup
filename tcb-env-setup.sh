@@ -210,7 +210,13 @@ then
     fi
 fi
 
-alias torizoncore-builder='docker run --rm -it'"$volumes"'-v $(pwd):/workdir -v '"$storage"':/storage --net=host -v /var/run/docker.sock:/var/run/docker.sock torizon/torizoncore-builder:'"$chosen_tag"
+function tcb_dynamic_params() {
+    local cont_name="tcb_$(date +%s)"
+    echo "-e TCB_CONTAINER_NAME=$cont_name --name $cont_name"
+}
+export -f tcb_dynamic_params
+
+alias torizoncore-builder='docker run --rm -it'"$volumes"'-v "$(pwd)":/workdir -v '"$storage"':/storage -v /var/run/docker.sock:/var/run/docker.sock --net=host $(tcb_dynamic_params) torizon/torizoncore-builder:'"$chosen_tag"
 
 echo "Setup complete! TorizonCore Builder is now ready to use."
 
