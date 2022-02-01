@@ -31,9 +31,11 @@ fi
 tcb_env_setup_cleanup () {
     unset OPTIND
     unset source
+    unset under_windows
     unset user_tag
     unset storage
     unset volumes
+    unset network
     unset remote_tags
     unset local_tags
     unset tag
@@ -50,8 +52,9 @@ tcb_env_setup_cleanup
 
 # Usage help message
 tcb_env_setup_usage () {
-    echo "Usage: source tcb-env-setup.sh [OPTIONS]"
-    echo "Options:"
+    echo "Usage: source tcb-env-setup.sh [OPTIONS] [-- <docker_options>]"
+    echo ""
+    echo "optional arguments:"
     echo "-a <value>              (a)uto mode."
     echo "                        With this flag enabled the script will automatically run with no need for user input. Valid values for <value> are either remote or local."
     echo "                        When -a remote is passed the script will automatically use the latest version of TorizonCore Builder online, with no consideration for any local versions that may exist."
@@ -73,13 +76,32 @@ tcb_env_setup_usage () {
     echo "                        It must be an absolute directory or a Docker volume name."
     echo "                        If this flag is not set, the \"storage\" Docker volume will be used."
     echo ""
+    echo "-n                      Do not enable \"host\" network mode."
+    echo "                        Under Linux the tool runs in \"host\" network mode by default allowing it to operate as a server without explicit port publishing."
+    echo "                        Under Windows this mode of operation is always disabled requiring port publishing to be set up if the tool is to act as a server."
+    echo "                        This flag disables the default behavior (which is relevant under Linux)."
+    echo ""
+    echo "-- <docker_options>     Extra options to be passed to \"docker run\"."
+    echo ""
     echo "-h                      (h)elp."
     echo "                        Prints usage information."
+    echo ""
 }
+
+# Are we running under Windows?
+under_windows=0
+if uname -r | grep -i "microsoft" > /dev/null; then
+    under_windows=1
+fi
 
 # Parse flags
 volumes=" -v /deploy "
 storage="storage"
+network=" --network=host "
+if [ $under_windows = "1" ]; then
+    # Do not use "host" network mode under Windows/WSL
+    network=" "
+fi
 while [[ $# -gt 0 ]]
 do
     case "$1" in
@@ -87,6 +109,8 @@ do
         -t) user_tag="$2";[ "$2" ]||user_tag="empty"; shift; shift;;
         -s) storage="$2";[ "$2" ]||storage="empty"; shift; shift;;
         -d) volumes=" "; shift;;
+        -n) network=" "; shift;;
+        --) shift; break;;
         -h|*) tcb_env_setup_usage; tcb_env_setup_cleanup; return;;
     esac
 done
@@ -118,6 +142,9 @@ then
     echo "Error: \"$storage\" storage must be an absolute directory or a valid Docker volume name."
     tcb_env_setup_cleanup
     return
+fi
+if [ $under_windows = "1" -a $# -eq 0 ]; then
+    echo "Warning: If you intend to use torizoncore-builder as a server (listening to ports), then you should pass extra parameters to \"docker run\" (via the -- switch)."
 fi
 
 # Get list of image tags from docker hub
@@ -216,7 +243,7 @@ function tcb_dynamic_params() {
 }
 export -f tcb_dynamic_params
 
-alias torizoncore-builder='docker run --rm -it'"$volumes"'-v "$(pwd)":/workdir -v '"$storage"':/storage -v /var/run/docker.sock:/var/run/docker.sock --net=host $(tcb_dynamic_params) torizon/torizoncore-builder:'"$chosen_tag"
+alias torizoncore-builder='docker run --rm -it'"$volumes"'-v "$(pwd)":/workdir -v '"$storage"':/storage -v /var/run/docker.sock:/var/run/docker.sock'"$network"'$(tcb_dynamic_params) '"$*"' torizon/torizoncore-builder:'"$chosen_tag"
 
 echo "Setup complete! TorizonCore Builder is now ready to use."
 
