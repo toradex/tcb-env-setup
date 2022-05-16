@@ -245,8 +245,8 @@ fi
 # if installing latest version, download and source the bash completion script
 if [[ "$chosen_tag" == "$latest_remote" ]]
 then
-    if wget -q https://raw.githubusercontent.com/toradex/tcb-env-setup/master/torizoncore-builder-completion.bash 2>/dev/null; then
-        source ./torizoncore-builder-completion.bash 2>/dev/null && rm -rf torizoncore-builder-completion.bash
+    if wget -q https://raw.githubusercontent.com/toradex/tcb-env-setup/master/torizoncore-builder-completion.bash -O ./torizoncore-builder-completion.bash.tmp 2>/dev/null; then
+        source ./torizoncore-builder-completion.bash.tmp 2>/dev/null && rm -rf torizoncore-builder-completion.bash.tmp
     fi
 fi
 
