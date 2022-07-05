@@ -317,7 +317,6 @@ TCB_COMP_ARGS_DEF_LOCKBOX_NAME="_TYPE_HERE_LOCKBOX_NAME_"
 TCB_COMP_ARGS_DEF_SHARED_DATA="_TYPE_HERE_SHARED_DATA_FILE_NAME_"
 TCB_COMP_ARGS_DEF_CLIENT_NAME="_TYPE_HERE_API_CLIENT_NAME_"
 
-
 # return in $COMPREPLY a list of files and directories starting from the
 # current working directory. The first parameter can be used to filter
 # the output files (e.g. *.txt), and if not passed, only directories are
@@ -329,20 +328,32 @@ _torizoncore-builder_completions_helper_filter_files_and_dirs() {
     local IFS=$'\n'
     local LASTCHAR=' '
 
-    compopt -o nospace
+    if [[ -z ${ZSH_VERSION-} ]]; then
+      compopt -o nospace
+    fi
 
     if [ -z "$filterpath" ]; then
-        COMPREPLY=($(compgen -d -- ${cur}))
+        if [[ -z ${ZSH_VERSION-} ]]; then
+          COMPREPLY=($(compgen -d -- ${cur}))
+        else
+          COMPREPLY=($(compgen_zsh -d -- ${cur}))
+        fi
     else
-        COMPREPLY=($(compgen -o plusdirs -f -X "!$filterpath" -- ${cur}))
+        if [[ -z ${ZSH_VERSION-} ]]; then
+          COMPREPLY=($(compgen -o plusdirs -f -X "!$filterpath" -- ${cur}))
+        else
+          COMPREPLY=($(compgen_zsh -o plusdirs -f -X "!$filterpath" -- ${cur}))
+        fi
     fi
 
     if [ ${#COMPREPLY[@]} = 1 ]; then
         [ -d "$COMPREPLY" ] && LASTCHAR=/
+        [[ -z ${ZSH_VERSION-} ]] && \
         COMPREPLY=$(printf %q%s "$COMPREPLY" "$LASTCHAR")
     else
         for ((i=0; i < ${#COMPREPLY[@]}; i++)); do
-            [ -d "${COMPREPLY[$i]}" ] && COMPREPLY[$i]=${COMPREPLY[$i]}/
+            [[ -z ${ZSH_VERSION-} ]] && [ -d "${COMPREPLY[$i]}" ] && \
+            COMPREPLY[$i]=${COMPREPLY[$i]}/
         done
     fi
 }
@@ -359,6 +370,7 @@ _torizoncore-builder_completions_helper_static_options() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
     local opts=$(compgen -W "$@" -- ${cur})
+    [[ -n ${ZSH_VERSION-} ]] && opts=$(compgen_zsh -W "$@" -- ${cur})
     # FIXME: This needs reviewing (see TCB-294)
     COMPREPLY=(${opts/$prev/})
 }
@@ -597,7 +609,13 @@ _torizoncore-builder_completions_dto_apply() {
             if [ "$prev2" != "--device-tree" ]; then
                 return;
             fi
-            ;;&
+            if [ -n "$cur" ]; then
+                _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DTO_APPLY"
+            fi
+            if [ -z "$COMPREPLY" ]; then
+                _torizoncore-builder_completions_helper_filter_files_and_dirs "*.dts"
+            fi
+            ;;
         *)
             if [ -n "$cur" ]; then
                 _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DTO_APPLY"
@@ -668,7 +686,13 @@ _torizoncore-builder_completions_dto_deploy() {
             if [ "$prev2" != "--device-tree" ]; then
                 return;
             fi
-            ;;&
+            if [ -n "$cur" ]; then
+                _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DTO_DEPLOY"
+            fi
+            if [ -z "$COMPREPLY" ]; then
+                _torizoncore-builder_completions_helper_filter_files_and_dirs "*.dts"
+            fi
+            ;;
         *)
             if [ -n "$cur" ]; then
                 _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DTO_DEPLOY"
@@ -1178,4 +1202,124 @@ _torizoncore-builder_completions() {
     esac
 }
 
-complete -o bashdefault -F _torizoncore-builder_completions torizoncore-builder
+# Mimics the results bash compgen function would output
+compgen_zsh() {
+  local R_PATH="*"
+  local CUR=".*"
+  local ARGS="-1"
+  local COMP_OPTIO
+  local X
+  local WORD
+  local FILTER=";p"
+  local DIR_FILTER=";p"
+
+  while [[ $# -gt 0 ]]
+  do
+    case "$1" in
+      --)
+        # Prevents unwanted output if nothing is passed after `--`
+        [ -n "$2" ] && shift || break;
+        CUR="$1"
+        ;;
+      -o)
+        shift
+        COMP_OPTION="$1"
+        [ "$COMP_OPTION" = "plusdirs" ] && ARGS+='adp'
+        ;;
+      -d)
+        # Filter only Directories
+        ARGS+='adp'
+        DIR_FILTER='/\/$/p'
+      ;;
+      -f)
+        ARGS+='adp'
+      ;;
+      -X)
+        shift
+        # Dumb parser to comply with regex. tested only with the patterns in this file.
+        X=$(tr -d '!' <<< "$1" | sed -En -e  's@^\*@\.\*@1; s@\*@\.@2; s@\.@\\.@2; p;')
+      ;;
+      -W)
+        shift
+        WORD="$1"
+      ;;
+      *)
+
+      ;;
+    esac
+    shift
+  done
+
+  if ([ -n "$WORD" ] && [ -n "${CUR}" ]); then
+    echo "$WORD" | awk 'NF' | tr -d ' ' | sed -En "s;^($CUR.*)$;\1;p"
+    return
+  fi
+
+  # Update pattern to comply with compgen -X '<patter>'
+  [ -n "$X" ] && FILTER="/($X|.*\/)$/p;"
+
+  # Gets the base dir and add `(.*|*)`.
+  ([ -d "${CUR}" ] && [ "${CUR}" != '..' ]) && R_PATH="${CUR}(.*|*)"
+  if [ ! -d "${CUR}" ] && [ -n "${CUR}" ]; then
+    [ $(dirname -- "$CUR") = '.' ] && R_PATH="(.*|*)" || \
+    R_PATH=$(dirname -- "${CUR}" | sed -En -e 's@$@\/(.*|*)@p')
+  fi
+
+  # If either no arguments are passed or the target folder is empty, return nothing
+  ([ "$ARGS" = "-1" ] || [ $( (eval "ls -1d $R_PATH" 2>/dev/null) | wc -l) -eq 0 ]) && return
+
+  eval "ls $ARGS $R_PATH | sed -En -e '$DIR_FILTER' | sed -En -e '$FILTER' | sed -En -e 's;^($CUR.*)$;\1;p'"
+}
+
+_bash_complete_zsh () {
+	local ret=1
+	local -a suf matches
+	local -x COMP_POINT COMP_CWORD
+	local -a COMP_WORDS COMPREPLY BASH_VERSINFO
+	local -x COMP_LINE="$words"
+	local -A savejobstates savejobtexts
+	(( COMP_POINT = 1 + ${#${(j. .)words[1,CURRENT-1]}} + $#QIPREFIX + $#IPREFIX + $#PREFIX ))
+	(( COMP_CWORD = CURRENT - 1))
+	COMP_WORDS=($words)
+	BASH_VERSINFO=(2 05b 0 1 release)
+	savejobstates=(${(kv)jobstates})
+	savejobtexts=(${(kv)jobtexts})
+	[[ ${argv[${argv[(I)nospace]:-0}-1]} = -o ]] && suf=(-S '')
+	matches=(${(f)"$(compgen $@ -- ${words[CURRENT]})"})
+	if [[ -n $matches ]]
+	then
+		if [[ ${argv[${argv[(I)filenames]:-0}-1]} = -o ]]
+		then
+			compset -P '*/' && matches=(${matches##*/})
+			compset -S '/*' && matches=(${matches%%/*})
+			compadd -Q -f "${suf[@]}" -a matches && ret=0
+		else
+			if [ ${#matches[@]} = 1 ] && [ -d "$matches" ]; then
+        compadd -Q -S '' "${suf[@]}" -a matches && ret=0
+      else
+        compadd -Q "${suf[@]}" -a matches && ret=0
+      fi
+		fi
+	fi
+	if (( ret ))
+	then
+		if [[ ${argv[${argv[(I)default]:-0}-1]} = -o ]]
+		then
+			_default "${suf[@]}" && ret=0
+		elif [[ ${argv[${argv[(I)dirnames]:-0}-1]} = -o ]]
+		then
+			_directories "${suf[@]}" && ret=0
+		fi
+	fi
+	return ret
+}
+
+if [[ -n ${ZSH_VERSION-} ]]; then
+  setopt completealiases
+  autoload bashcompinit && bashcompinit
+  _function=('-F' '_torizoncore-builder_completions')
+  compdef _bash_complete_zsh\ ${(j. .)${(q)_function}} torizoncore-builder
+else
+  complete -o bashdefault -F _torizoncore-builder_completions torizoncore-builder
+fi
+
