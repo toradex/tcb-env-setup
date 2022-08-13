@@ -29,7 +29,6 @@ fi
 
 # cleanup variables and functions used in script since script is meant to be sourced
 tcb_env_setup_cleanup () {
-    unset OPTIND
     unset source
     unset under_windows
     unset user_tag
@@ -46,6 +45,7 @@ tcb_env_setup_cleanup () {
     unset chosen_tag
     unset -f tcb_env_setup_usage 2>/dev/null
     unset -f get_latest_tag 2>/dev/null
+    unset -f tcb_env_setup_check_updated 2>/dev/null
 }
 
 tcb_env_setup_cleanup
@@ -101,6 +101,22 @@ tcb_env_setup_usage () {
     echo ""
 }
 
+tcb_env_setup_check_updated() {
+  # Check if md5sum on git matches the md5sum on this file.
+  [ ! -f "$1" ] && return
+
+  local target_url="https://raw.githubusercontent.com/toradex/tcb-env-setup/master/tcb-env-setup.sh"
+
+  local status_code=$(curl -sL -o tcb-env-setup.sh.tmp -w '%{http_code}' "$target_url")
+  local remote_md5sum=$(md5sum tcb-env-setup.sh.tmp | cut -d ' ' -f 1)
+  local local_md5sum=$(md5sum "$1" | cut -d ' ' -f 1)
+  rm tcb-env-setup.sh.tmp
+
+  if [ "$status_code" -eq 200 -a "$remote_md5sum" != "$local_md5sum" ]; then
+    echo -e "WARNING: This script is outdated. To update it, run 'wget -o tcb-env-setup.sh $target_url' \n"
+  fi
+}
+
 # Are we running under Windows?
 under_windows=0
 if uname -r | grep -i "microsoft" > /dev/null; then
@@ -127,6 +143,17 @@ do
         -h|*) tcb_env_setup_usage; tcb_env_setup_cleanup; return;;
     esac
 done
+
+if [[ $source != "local" ]]
+then
+  if [ -z "${ZSH_VERSION-}" ]; then
+    SCRIPT_PATH="$PWD/${BASH_SOURCE[0]}"
+  else
+    SCRIPT_PATH="${(%):-%x}"
+  fi
+
+  tcb_env_setup_check_updated $SCRIPT_PATH
+fi
 
 if [[ $source = "empty" ]] || [[ $user_tag = "empty" ]] || [[ $storage = "empty" ]]
 then
@@ -163,6 +190,7 @@ fi
 # Get list of image tags from docker hub
 remote_tags=$(curl -L -s 'https://registry.hub.docker.com/v1/repositories/torizon/torizoncore-builder/tags' | awk -F"[,:}]" '{for(i=1;i<=NF;i++){if($i~/'name'\042/){print $(i+1)}}}' | tr -d '" ' | sed -n P)
 # Get list of image tags locally
+# TODO RegEx Fails on MacOS. This one works: sed -En 's/^.*torizoncore-builder[[:space:]]+([0-9]+).*$/\1/p'
 local_tags=$(docker images torizon/torizoncore-builder | sed -n 's/^.*torizoncore-builder\s\+\([0-9]\+\).*$/\1/p')
 
 # Determine the tag with the greatest numerical major revision
@@ -254,6 +282,7 @@ function tcb_dynamic_params() {
     local cont_name="tcb_$(date +%s)"
     echo "-e TCB_CONTAINER_NAME=$cont_name --name $cont_name"
 }
+# TODO Not compatible with ZSH
 export -f tcb_dynamic_params
 
 alias torizoncore-builder='docker run --rm -it'"$volumes"'-v "$(pwd)":/workdir -v '"$storage"':/storage -v /var/run/docker.sock:/var/run/docker.sock'"$network"'$(tcb_dynamic_params) '"$*"' torizon/torizoncore-builder:'"$chosen_tag"
