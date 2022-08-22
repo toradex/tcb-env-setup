@@ -320,13 +320,20 @@ TCB_COMP_ARGS_DEF_CLIENT_NAME="_TYPE_HERE_API_CLIENT_NAME_"
 # return in $COMPREPLY a list of files and directories starting from the
 # current working directory. The first parameter can be used to filter
 # the output files (e.g. *.txt), and if not passed, only directories are
-# returned
+# returned. The second parameter, if true, can be used in conjuction with the first
+# to exclude the directories from the results
 _torizoncore-builder_completions_helper_filter_files_and_dirs() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local filterpath="$1"
 
     local IFS=$'\n'
     local LASTCHAR=' '
+
+    local arg=(-o plusdirs)
+
+    if [ "$2" = "true" ]; then
+        arg=()
+    fi
 
     if [ -z "$ZSH_VERSION" ]; then
       compopt -o nospace
@@ -335,7 +342,7 @@ _torizoncore-builder_completions_helper_filter_files_and_dirs() {
     if [ -z "$filterpath" ]; then
         COMPREPLY=($(compgen_compat -d -- ${cur}))
     else
-        COMPREPLY=($(compgen_compat -o plusdirs -f -X "!$filterpath" -- ${cur}))
+        COMPREPLY=($(compgen_compat ${arg[@]} -f -X "!$filterpath" -- ${cur}))
     fi
 
     if [ ${#COMPREPLY[@]} = 1 ]; then
@@ -348,6 +355,10 @@ _torizoncore-builder_completions_helper_filter_files_and_dirs() {
             COMPREPLY[$i]=${COMPREPLY[$i]}/
         done
     fi
+}
+
+_torizoncore-builder_completions_helper_filter_files() {
+    _torizoncore-builder_completions_helper_filter_files_and_dirs "$1" true
 }
 
 # return in $COMPREPLY a list of directories starting from the current
@@ -975,7 +986,7 @@ _torizoncore-builder_completions_platform_lockbox() {
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_USERNAME"
             ;;
         --output-directory)
-            _torizoncore-builder_completions_helper_filter_files_and_dirs
+            _torizoncore-builder_completions_helper_filter_dirs
             ;;
         *)
             if [ -n "$cur" ]; then
@@ -1034,6 +1045,37 @@ _torizoncore-builder_completions_platform() {
     esac
 }
 
+# return in $COMPREPLY a list of references. references can either be
+# a compose file ending with .yaml/yml or the list of references from
+# the ostree folder if the `--repo` argument is already present and it
+# points to a valid ostree folder.
+_torizoncore-builder_completions_push_reference() {
+    local cur="${COMP_WORDS[COMP_CWORD]}"
+    local repo
+
+    for ((index=0; index < ${#COMP_WORDS[@]}; index++)); do
+        if [ "${COMP_WORDS[index]}" = "--repo" -a "${COMP_WORDS[index+1]}" = "=" ]; then
+            repo="${COMP_WORDS[index+2]}"
+        elif [[ "${COMP_WORDS[index]}" =~ ^--repo= ]]; then
+            repo=${COMP_WORDS[index]:7}
+        elif [ "${COMP_WORDS[index]}" = "--repo" ]; then
+            repo="${COMP_WORDS[index+1]}"
+        fi
+    done
+
+    repo=$(echo $repo | tr -d '"')
+    local refs_path="$PWD/$repo/refs/heads/"
+
+    if [ -d "$refs_path"  -a -n "$repo" ]; then
+        local results=($(find "$refs_path" -type f 2>/dev/null))
+        results=${results[@]/$refs_path/}
+        COMPREPLY=($(compgen_compat -W "$results" -- ${cur}))
+    else
+        _torizoncore-builder_completions_helper_filter_files "*.y*ml"
+    fi
+
+}
+
 # 'push' command
 _torizoncore-builder_completions_push() {
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
@@ -1059,8 +1101,7 @@ _torizoncore-builder_completions_push() {
                 _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_PUSH"
             fi
             if [ -z "$COMPREPLY" ]; then
-                # TODO: Automatically complete with dir names, *.yaml and *.yml files
-                _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_OSTREE_REF"
+                _torizoncore-builder_completions_push_reference
             fi
             ;;
     esac
@@ -1210,14 +1251,12 @@ compgen_zsh() {
   local R_PATH="*"
   local CUR=".*"
   local ARGS="-1"
-  local COMP_OPTIO
   local X
   local WORD
   local FILTER=";p"
   local DIR_FILTER=";p"
 
-  while [[ $# -gt 0 ]]
-  do
+  while [[ $# -gt 0 ]]; do
     case "$1" in
       --)
         # Prevents unwanted output if nothing is passed after `--`
@@ -1227,7 +1266,6 @@ compgen_zsh() {
       -o)
         shift
         COMP_OPTION="$1"
-        [ "$COMP_OPTION" = "plusdirs" ] && ARGS+='adp'
         ;;
       -d)
         # Filter only Directories
@@ -1240,7 +1278,7 @@ compgen_zsh() {
       -X)
         shift
         # Dumb parser to comply with regex. tested only with the patterns in this file.
-        X=$(tr -d '!' <<< "$1" | sed -En -e  's@^\*@\.\*@1; s@\*@\.@2; s@\.@\\.@2; p;')
+        X=$(tr -d '!' <<< "$1" | sed -En -e  's@^\*@\.\*@1; s@\*@.?@2; s@\.@\\.@2; p;')
       ;;
       -W)
         shift
@@ -1253,13 +1291,23 @@ compgen_zsh() {
     shift
   done
 
+  if [ "$COMP_OPTION" = "plusdirs" ]; then
+    ARGS+='adp'
+  fi
+
   if [ -n "$WORD" -a -n "$CUR" ]; then
     echo "$WORD" | awk 'NF' | tr ' ' '\n' | sed -En "s;^($CUR.*)$;\1;p"
     return
   fi
 
   # Update pattern to comply with compgen -X '<patter>'
-  [ -n "$X" ] && FILTER="/($X|.*\/)$/p;"
+  if [ -n "$X" ]; then
+    if [ "$COMP_OPTION" = "plusdirs" ]; then
+      FILTER="/($X|.*\/)$/p;"
+    else
+      FILTER="/$X$/p;"
+    fi
+  fi
 
   # Gets the base dir and add `(.*|*)`.
   [ -d "$CUR" -a "$CUR" != '..' ] && R_PATH="$CUR(.*|*)"
