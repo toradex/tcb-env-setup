@@ -328,31 +328,23 @@ _torizoncore-builder_completions_helper_filter_files_and_dirs() {
     local IFS=$'\n'
     local LASTCHAR=' '
 
-    if [[ -z ${ZSH_VERSION-} ]]; then
+    if [ -z "$ZSH_VERSION" ]; then
       compopt -o nospace
     fi
 
     if [ -z "$filterpath" ]; then
-        if [[ -z ${ZSH_VERSION-} ]]; then
-          COMPREPLY=($(compgen -d -- ${cur}))
-        else
-          COMPREPLY=($(compgen_zsh -d -- ${cur}))
-        fi
+        COMPREPLY=($(compgen_compat -d -- ${cur}))
     else
-        if [[ -z ${ZSH_VERSION-} ]]; then
-          COMPREPLY=($(compgen -o plusdirs -f -X "!$filterpath" -- ${cur}))
-        else
-          COMPREPLY=($(compgen_zsh -o plusdirs -f -X "!$filterpath" -- ${cur}))
-        fi
+        COMPREPLY=($(compgen_compat -o plusdirs -f -X "!$filterpath" -- ${cur}))
     fi
 
     if [ ${#COMPREPLY[@]} = 1 ]; then
         [ -d "$COMPREPLY" ] && LASTCHAR=/
-        [[ -z ${ZSH_VERSION-} ]] && \
+        [ -z "$ZSH_VERSION" ] && \
         COMPREPLY=$(printf %q%s "$COMPREPLY" "$LASTCHAR")
     else
         for ((i=0; i < ${#COMPREPLY[@]}; i++)); do
-            [[ -z ${ZSH_VERSION-} ]] && [ -d "${COMPREPLY[$i]}" ] && \
+            [ -z "$ZSH_VERSION" ] && [ -d "${COMPREPLY[$i]}" ] && \
             COMPREPLY[$i]=${COMPREPLY[$i]}/
         done
     fi
@@ -369,10 +361,13 @@ _torizoncore-builder_completions_helper_filter_dirs() {
 _torizoncore-builder_completions_helper_static_options() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev="${COMP_WORDS[COMP_CWORD-1]}"
-    local opts=$(compgen -W "$@" -- ${cur})
-    [[ -n ${ZSH_VERSION-} ]] && opts=$(compgen_zsh -W "$@" -- ${cur})
-    # FIXME: This needs reviewing (see TCB-294)
-    COMPREPLY=(${opts/$prev/})
+    local opts=($(compgen_compat -W "$@" -- ${cur}))
+    local i=0
+    for opt in "${opts[@]}"; do
+      [ "$opt" = "$prev" ] && unset opts["$i"]
+      ((++i))
+    done
+    COMPREPLY=(${opts[@]})
 }
 
 # given the current command line, return the current subcommand being processed.
@@ -1202,6 +1197,14 @@ _torizoncore-builder_completions() {
     esac
 }
 
+compgen_compat() {
+  if [ -z "$ZSH_VERSION" ]; then
+      compgen "$@"
+  else
+      compgen_zsh "$@"
+  fi
+}
+
 # Mimics the results bash compgen function would output
 compgen_zsh() {
   local R_PATH="*"
@@ -1250,8 +1253,8 @@ compgen_zsh() {
     shift
   done
 
-  if ([ -n "$WORD" ] && [ -n "${CUR}" ]); then
-    echo "$WORD" | awk 'NF' | tr -d ' ' | sed -En "s;^($CUR.*)$;\1;p"
+  if [ -n "$WORD" -a -n "$CUR" ]; then
+    echo "$WORD" | awk 'NF' | tr ' ' '\n' | sed -En "s;^($CUR.*)$;\1;p"
     return
   fi
 
@@ -1259,14 +1262,14 @@ compgen_zsh() {
   [ -n "$X" ] && FILTER="/($X|.*\/)$/p;"
 
   # Gets the base dir and add `(.*|*)`.
-  ([ -d "${CUR}" ] && [ "${CUR}" != '..' ]) && R_PATH="${CUR}(.*|*)"
-  if [ ! -d "${CUR}" ] && [ -n "${CUR}" ]; then
+  [ -d "$CUR" -a "$CUR" != '..' ] && R_PATH="$CUR(.*|*)"
+  if [ ! -d "$CUR" -a -n "$CUR" ]; then
     [ $(dirname -- "$CUR") = '.' ] && R_PATH="(.*|*)" || \
-    R_PATH=$(dirname -- "${CUR}" | sed -En -e 's@$@\/(.*|*)@p')
+    R_PATH=$(dirname -- "$CUR" | sed -En -e 's@$@\/(.*|*)@p')
   fi
 
   # If either no arguments are passed or the target folder is empty, return nothing
-  ([ "$ARGS" = "-1" ] || [ $( (eval "ls -1d $R_PATH" 2>/dev/null) | wc -l) -eq 0 ]) && return
+  [ "$ARGS" = "-1" -o $( (eval "ls -1d $R_PATH" 2>/dev/null) | wc -l) -eq 0 ] && return
 
   eval "ls $ARGS $R_PATH | sed -En -e '$DIR_FILTER' | sed -En -e '$FILTER' | sed -En -e 's;^($CUR.*)$;\1;p'"
 }
@@ -1314,12 +1317,12 @@ _bash_complete_zsh () {
 	return ret
 }
 
-if [[ -n ${ZSH_VERSION-} ]]; then
+if [ -z "$ZSH_VERSION" ]; then
+  complete -o bashdefault -F _torizoncore-builder_completions torizoncore-builder
+else
   setopt completealiases
   autoload bashcompinit && bashcompinit
   _function=('-F' '_torizoncore-builder_completions')
   compdef _bash_complete_zsh\ ${(j. .)${(q)_function}} torizoncore-builder
-else
-  complete -o bashdefault -F _torizoncore-builder_completions torizoncore-builder
 fi
 
