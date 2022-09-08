@@ -188,7 +188,8 @@ if [ $under_windows = "1" -a $# -eq 0 ]; then
 fi
 
 # Get list of image tags from docker hub
-remote_tags=$(curl -L -s 'https://registry.hub.docker.com/v1/repositories/torizon/torizoncore-builder/tags' | awk -F"[,:}]" '{for(i=1;i<=NF;i++){if($i~/'name'\042/){print $(i+1)}}}' | tr -d '" ' | sed -n P)
+remote_tags=$(curl -L -s 'https://registry.hub.docker.com/v2/namespaces/torizon/repositories/torizoncore-builder/tags' | sed -n -e 's/\("name"\) *: *\("[^"]\+"\)/\n\1:\2\n/gp' | \
+              sed -n -e 's/"name":"\([^"]\+\)"/\1/p')
 # Get list of image tags locally
 # TODO RegEx Fails on MacOS. This one works: sed -En 's/^.*torizoncore-builder[[:space:]]+([0-9]+).*$/\1/p'
 local_tags=$(docker images torizon/torizoncore-builder | sed -n 's/^.*torizoncore-builder\s\+\([0-9]\+\).*$/\1/p')
