@@ -4,7 +4,7 @@ TorizonCore Builder Environment Setup Script
 
 ## Usage
 
-### Basic Use
+### Basic Use (latest official release)
 
 To use the setup script in interactive mode run it as follows with no arguments:
 
@@ -25,6 +25,24 @@ through sessions.
 **NOTE (for Windows users only)**: Extra parameters may be needed if you intend to use the tool as
 a server (i.e. run `torizoncore-builder` commands such as `images serve` or `ostree serve`).
 Please refer to the documentation of these commands for more information.
+
+### Basic Use (early-access version)
+
+Toradex generates an early-access version of TorizonCore Builder on a weekly basis. That version has
+the latest implementations made by the R&D team, including bug fixes and new features not officially
+released. New features will not be documented yet and may not be fully functional; also their
+interface may change before the official release. Because of that, we recommend the use of the
+early-access version only in case one is being affected by some bug whose fix is already available
+in that version. Notice though that we do not have a release notes document for such a version so
+that the information about the fixes available would most likely come from Toradex support.
+
+If you want to try this version then source the setup script passing the `early-access` tag, e.g.:
+
+```
+$ source tcb-env-setup.sh -t early-access
+```
+
+Other than passing the tag, usage of the setup script is just the same as with the official release.
 
 ### Advanced Usage and Options
 
