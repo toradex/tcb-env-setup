@@ -257,6 +257,10 @@ TCB_COMP_ARGS_PLATFORM_LOCKBOX="
     --force
     --platform
     --login
+    --login-to
+    --cacert-to
+    --dind-param
+    --dind-env
     --output-directory
 "
 
@@ -981,11 +985,26 @@ _torizoncore-builder_completions_platform_lockbox() {
     local cur="${COMP_WORDS[COMP_CWORD]}"
     local prev1="${COMP_WORDS[COMP_CWORD-1]}"
     local prev2="${COMP_WORDS[COMP_CWORD-2]}"
+    local prev3="${COMP_WORDS[COMP_CWORD-3]}"
+
+    case "$prev3" in
+        --login-to)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_PASSWORD"
+            return
+            ;;
+    esac
 
     case "$prev2" in
         --login)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_PASSWORD"
             return
+            ;;
+        --login-to)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_USERNAME"
+            return
+            ;;
+        --cacert-to)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_CERT"
             ;;
     esac
 
@@ -998,6 +1017,18 @@ _torizoncore-builder_completions_platform_lockbox() {
             ;;
         --login)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_USERNAME"
+            ;;
+        --login-to)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REGISTRY"
+            ;;
+        --cacert-to)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REGISTRY"
+            ;;
+        --dind-param)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_DIND_PARAM"
+            ;;
+        --dind-env)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_DIND_ENV"
             ;;
         --output-directory)
             _torizoncore-builder_completions_helper_filter_dirs
