@@ -48,9 +48,12 @@ TCB_COMP_ARGS_BUNDLE="
     --bundle-directory
     --force
     --platform
+    --keep-double-dollar-sign
     --login
     --login-to
+    --cacert-to
     --dind-param
+    --dind-env
 "
 
 TCB_COMP_ARGS_BUNDLE_PLATFORM="
@@ -296,7 +299,9 @@ TCB_COMP_ARGS_UNION="
 TCB_COMP_ARGS_DEF_PASSWORD="_TYPE_HERE_PASSWORD_"
 TCB_COMP_ARGS_DEF_USERNAME="_TYPE_HERE_USERNAME_"
 TCB_COMP_ARGS_DEF_REGISTRY="_TYPE_HERE_REGISTRY_"
-TCB_COMP_ARGS_DEF_DIND="_TYPE_HERE_DIND_PARAM_"
+TCB_COMP_ARGS_DEF_CERT="_TYPE_HERE_CERT_"
+TCB_COMP_ARGS_DEF_DIND_PARAM="_TYPE_HERE_DIND_PARAM_"
+TCB_COMP_ARGS_DEF_DIND_ENV="ENV1=VAL1"
 TCB_COMP_ARGS_DEF_IMAGE_NAME="_TYPE_HERE_IMAGE_NAME_"
 TCB_COMP_ARGS_DEF_IMAGE_DESCRIPTION="_TYPE_HERE_IMAGE_DESCRIPTION_"
 TCB_COMP_ARGS_DEF_REMOTE_HOST="_TYPE_HERE_REMOTE_HOST_"
@@ -451,6 +456,9 @@ _torizoncore-builder_completions_bundle() {
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_USERNAME"
             return
             ;;
+        --cacert-to)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_CERT"
+            ;;
     esac
 
     case "$prev1" in
@@ -466,8 +474,14 @@ _torizoncore-builder_completions_bundle() {
         --login-to)
             _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REGISTRY"
             ;;
+        --cacert-to)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_REGISTRY"
+            ;;
         --dind-param)
-            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_DIND"
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_DIND_PARAM"
+            ;;
+        --dind-env)
+            _torizoncore-builder_completions_helper_static_options "$TCB_COMP_ARGS_DEF_DIND_ENV"
             ;;
         *)
             if [ -n "$cur" ]; then
