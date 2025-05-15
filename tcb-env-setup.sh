@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if ! command -v curl > /dev/null; then
+    echo "Error: curl is not installed. Please install curl before sourcing this script."
+    exit 1
+fi
+
 # Check to make sure script is being sourced otherwise exit
 SOURCED=0
 
