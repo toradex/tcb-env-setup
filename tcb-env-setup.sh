@@ -266,7 +266,7 @@ echo -e "Setting up TorizonCore Builder with version $chosen_tag.\n"
 if [[ $pull_remote == true ]]
 then
     echo -e "Pulling TorizonCore Builder..."
-    if docker pull torizon/torizoncore-builder:"$chosen_tag"; then
+    if docker pull --platform linux/amd64 torizon/torizoncore-builder:"$chosen_tag"; then
         echo -e "Done!\n"
     else
         echo "Error: could not pull TorizonCore Builder from Docker Hub!"
