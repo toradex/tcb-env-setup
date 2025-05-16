@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
 
+if ! command -v curl > /dev/null; then
+    echo "Error: curl is not installed. Please install curl before sourcing this script."
+    exit 1
+fi
+
 # Check to make sure script is being sourced otherwise exit
 SOURCED=0
 
@@ -188,11 +193,10 @@ if [ $under_windows = "1" -a $# -eq 0 ]; then
 fi
 
 # Get list of image tags from docker hub
-remote_tags=$(curl -L -s 'https://registry.hub.docker.com/v2/namespaces/torizon/repositories/torizoncore-builder/tags' | sed -n -e 's/\("name"\) *: *\("[^"]\+"\)/\n\1:\2\n/gp' | \
-              sed -n -e 's/"name":"\([^"]\+\)"/\1/p')
+remote_tags=$(curl -L -s 'https://registry.hub.docker.com/v2/namespaces/torizon/repositories/torizoncore-builder/tags' | sed -n -e 's/\("name"\) *: *\("[^"]\{1,\}"\)/\n\1:\2\n/gp' | \
+          sed -n -e 's/"name":"\([^"]\{1,\}\)"/\1/p')
 # Get list of image tags locally
-# TODO RegEx Fails on MacOS. This one works: sed -En 's/^.*torizoncore-builder[[:space:]]+([0-9]+).*$/\1/p'
-local_tags=$(docker images torizon/torizoncore-builder | sed -n 's/^.*torizoncore-builder\s\+\([0-9]\+\).*$/\1/p')
+local_tags=$(docker images torizon/torizoncore-builder | sed -n 's/^.*torizoncore-builder[[:space:]]\{1,\}\([0-9]\{1,\}\).*$/\1/p')
 
 # Determine the tag with the greatest numerical major revision
 get_latest_tag () {
@@ -262,7 +266,7 @@ echo -e "Setting up TorizonCore Builder with version $chosen_tag.\n"
 if [[ $pull_remote == true ]]
 then
     echo -e "Pulling TorizonCore Builder..."
-    if docker pull torizon/torizoncore-builder:"$chosen_tag"; then
+    if docker pull --platform linux/amd64 torizon/torizoncore-builder:"$chosen_tag"; then
         echo -e "Done!\n"
     else
         echo "Error: could not pull TorizonCore Builder from Docker Hub!"
