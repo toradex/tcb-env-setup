@@ -31,6 +31,7 @@ fi
 tcb_env_setup_cleanup () {
     unset source
     unset under_windows
+    unset interactive_flags
     unset user_tag
     unset storage
     unset volumes
@@ -121,6 +122,12 @@ tcb_env_setup_check_updated() {
 under_windows=0
 if uname -r | grep -i "microsoft" > /dev/null; then
     under_windows=1
+fi
+
+# Detect if we have a TTY (for interactive use vs CI/CD pipelines)
+interactive_flags=""
+if [[ -t 0 && -t 1 ]]; then
+    interactive_flags="-it"
 fi
 
 # Parse flags
@@ -286,7 +293,7 @@ function tcb_dynamic_params() {
 # TODO Not compatible with ZSH
 export -f tcb_dynamic_params
 
-alias torizoncore-builder='docker run --rm -it'"$volumes"'-v "$(pwd)":/workdir -v '"$storage"':/storage -v /var/run/docker.sock:/var/run/docker.sock'"$network"'$(tcb_dynamic_params) '"$*"' torizon/torizoncore-builder:'"$chosen_tag"
+alias torizoncore-builder='docker run --rm '"$interactive_flags"' '"$volumes"'-v "$(pwd)":/workdir -v '"$storage"':/storage -v /var/run/docker.sock:/var/run/docker.sock'"$network"'$(tcb_dynamic_params) '"$*"' torizon/torizoncore-builder:'"$chosen_tag"
 
 echo "Setup complete! TorizonCore Builder is now ready to use."
 
