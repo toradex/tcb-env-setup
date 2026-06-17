@@ -1,0 +1,33 @@
+#!/bin/sh
+
+STUB_NAME=docker
+. "$(dirname "$0")/stub-common.sh"
+
+stub_log "$*"
+
+subcommand=${1:-}
+shift || true
+
+case "${subcommand}" in
+    images)
+        cat "${TCB_STUB_DOCKER_IMAGES_FILE}"
+        ;;
+    pull)
+        exit "${TCB_STUB_DOCKER_PULL_RC:-0}"
+        ;;
+    run)
+        case "$*" in
+            *" sh -c test -e /opt/torizoncore-builder/completion-scripts/torizoncore-builder-completion.bash"*)
+                if [ "${TCB_STUB_DOCKER_COMPLETION_PRESENT:-0}" = "1" ]; then
+                    exit 0
+                fi
+                exit 1
+                ;;
+            *" cat /opt/torizoncore-builder/completion-scripts/torizoncore-builder-completion.bash"*)
+                cat "${TCB_STUB_DOCKER_COMPLETION_FILE}"
+                ;;
+        esac
+        ;;
+esac
+
+exit 0

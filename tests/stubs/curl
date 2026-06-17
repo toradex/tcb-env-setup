@@ -1,0 +1,47 @@
+#!/bin/sh
+
+STUB_NAME=curl
+. "$(dirname "$0")/stub-common.sh"
+
+stub_log "$*"
+
+output_file=""
+write_code=0
+url=""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        -o)
+            output_file=$2
+            shift 2
+            ;;
+        -w)
+            write_code=1
+            shift 2
+            ;;
+        -*)
+            shift
+            ;;
+        *)
+            url=$1
+            shift
+            ;;
+    esac
+done
+
+case "${url}" in
+    *"/v2/namespaces/"*"/tags")
+        cat "${TCB_STUB_CURL_REMOTE_TAGS_FILE}"
+        ;;
+    *"raw.githubusercontent.com/toradex/tcb-env-setup/master/tcb-env-setup.sh")
+        cat "${TCB_STUB_CURL_UPDATE_FILE}" > "${output_file}"
+        if [ "${write_code}" -eq 1 ]; then
+            printf '%s' "${TCB_STUB_CURL_UPDATE_STATUS:-200}"
+        fi
+        ;;
+    *"raw.githubusercontent.com/toradex/tcb-env-setup/master/torizoncore-builder-completion.bash")
+        cat "${TCB_STUB_CURL_COMPLETION_FILE}" > "${output_file}"
+        ;;
+esac
+
+exit 0

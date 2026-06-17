@@ -1,0 +1,20 @@
+#!/bin/sh
+
+STUB_NAME=mktemp
+. "$(dirname "$0")/stub-common.sh"
+
+stub_log "$*"
+
+count_file="${TCB_TEST_ROOT}/mktemp.count"
+count=0
+
+if [ -f "${count_file}" ]; then
+    count=$(cat "${count_file}")
+fi
+
+count=$((count + 1))
+printf '%s\n' "${count}" > "${count_file}"
+
+tmp_path="${TCB_TEST_ROOT}/tmp.${count}"
+: > "${tmp_path}"
+printf '%s\n' "${tmp_path}"

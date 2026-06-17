@@ -1,0 +1,13 @@
+#!/bin/sh
+
+STUB_NAME=uname
+. "$(dirname "$0")/stub-common.sh"
+
+stub_log "$*"
+
+if [ "${1:-}" = "-r" ]; then
+    printf '%s\n' "${TCB_STUB_UNAME_R:-Linux}"
+    exit 0
+fi
+
+/usr/bin/uname "$@"

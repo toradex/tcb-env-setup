@@ -1,98 +1,235 @@
 # tcb-env-setup
 
-TorizonCore Builder Environment Setup Script
+Environment setup script for running TorizonCore Builder from its Docker image.
 
-## Usage
+The script prepares a shell function named `torizoncore-builder` that runs the container with the expected defaults for volumes, networking, and workspace access.
 
-### Basic Use (latest official release)
+## Prerequisites
 
-To use the setup script in interactive mode run it as follows with no arguments:
+Before using the setup script, make sure the host system has:
 
-```
-source tcb-env-setup.sh
-```
+- `docker`
+- `curl`
 
-**IMPORTANT**: Make sure you execute the script by sourcing it as shown above. Executing it normally
-will cause certain parts of the setup to fail and most importantly the `torizoncore-builder`
-command will not be available to you.
+The script also expects to be sourced from a shell session. It supports command completion only on `bash` and `zsh`.
 
-The script will guide you through some yes/no prompts. By the end the script will setup TorizonCore
-Builder with either the latest version of the tool found locally or online depending on your answers.
-On success you can then use the tool by running `torizoncore-builder`. Finally you must run this
-setup script every new terminal session as the `torizoncore-builder` command will not be retained
-through sessions.
+## Interactive Mode (Quick Start)
 
-**NOTE (for Windows users only)**: Extra parameters may be needed if you intend to use the tool as
-a server (i.e. run `torizoncore-builder` commands such as `images serve` or `ostree serve`).
-Please refer to the documentation of these commands for more information.
+`tcb-env-setup.sh` must be sourced into your current shell session. Run the script with no arguments:
 
-### Basic Use (early-access version)
-
-Toradex generates an early-access version of TorizonCore Builder on a weekly basis. That version has
-the latest implementations made by the R&D team, including bug fixes and new features not officially
-released. New features will not be documented yet and may not be fully functional; also their
-interface may change before the official release. Because of that, we recommend the use of the
-early-access version only in case one is being affected by some bug whose fix is already available
-in that version. Notice though that we do not have a release notes document for such a version so
-that the information about the fixes available would most likely come from Toradex support.
-
-If you want to try this version then source the setup script passing the `early-access` tag, e.g.:
-
-```
-$ source tcb-env-setup.sh -t early-access
+```bash
+. tcb-env-setup.sh
 ```
 
-Other than passing the tag, usage of the setup script is just the same as with the official release.
+In interactive mode, the script checks local and remote versions and may ask whether you want to update to the latest official release.
 
-### Advanced Usage and Options
+Use this mode when you are working manually in a terminal and want the script to guide the version selection.
 
-Here is the help output of the script obtained via `source tcb-env-setup.sh -h`:
+If setup succeeds, the `torizoncore-builder` command becomes available in the current shell.
+You can then invoke TorizonCore Builder as if it were a normal command:
+
+```bash
+torizoncore-builder -h
+```
+
+The setup is session-local. You need to source the script again in every new shell session.
+
+### Notes
+
+- You must source the script with `.` or `source`. Executing it directly will fail and will not define `torizoncore-builder`.
+- Interactive mode requires `stdin` to be attached to a TTY.
+- You must run the setup script again in each new shell session.
+- On Linux, the generated Docker command uses `--network=host` by default.
+- On Windows environments, host networking is disabled and server-style commands may require explicit port publishing via `-- <docker_options>`.
+
+## Non-Interactive Mode
+
+Use non-interactive mode when running from automation, CI, or wrapper scripts.
+
+### Use the latest remote official version
+
+```bash
+. tcb-env-setup.sh -a remote
+```
+
+This selects the latest official version of TorizonCore Builder available online and pulls it if needed.
+
+### Use the latest local version
+
+```bash
+. tcb-env-setup.sh -a local
+```
+
+This selects the latest locally available TorizonCore Builder image and does not check online for a newer version.
+
+This is the fastest mode when you already have the required image locally.
+
+### Use a specific tag
+
+```bash
+. tcb-env-setup.sh -t 3.11.0
+```
+
+This selects the exact image tag you provide and pulls it if needed.
+
+`-a` and `-t` are mutually exclusive.
+
+## CI Usage Examples
+
+### With Bash (recommended)
+
+A typical CI-friendly invocation when the shell is **Bash** is:
+
+```bash
+. tcb-env-setup.sh -a remote -c
+```
+
+Explanation:
+
+- `-a remote`: Avoids prompts and always selects the latest official version.
+- `-c`: Skips shell completion setup.
+
+In Bash, the function `torizoncore-builder` is available in the current (parent) shell where the setup script was invoked and in child Bash processes directly or indirectly started from it.
+
+### With POSIX shells
+
+With basic POSIX shells there are some limitations:
+
+1. Passing parameters to a sourced script is not supported.
+2. Function names cannot contain dashes.
+3. Exporting a function through the environment is not supported.
+
+To work around the **first two limitations**, users can invoke the script like this:
 
 ```
-Usage: source tcb-env-setup.sh [OPTIONS] [-- <docker_options>]
-
-optional arguments:
-  -a <value>: select auto mode
-      With this flag enabled the script will automatically run with no need
-      for user input. Valid values for <value> are either remote or local.
-      When "-a remote" is passed, the script will automatically use the
-      latest version of TorizonCore Builder online, with no consideration
-      for any local versions that may exist. When "-a local" is passed
-      the script will automatically use the latest version of TorizonCore
-      Builder found locally, with no consideration to what may be online.
-      This flag is mutually exclusive with the -t flag.
-
-  -t <version tag>: select tag mode
-      With this flag enabled the script will automatically run with no need
-      for user input. Valid values for <version tag> can be found online:
-      https://registry.hub.docker.com/r/torizon/torizoncore-builder/tags?page=1&ordering=last_updated.
-      Whatever <version tag> is provided will then be pulled from online.
-      This flag is mutually exclusive with the -a flag.
-
-  -d: disable volumes
-      With this flag enabled the script will setup torizoncore-builder
-      without Docker volumes meaning some torizoncore-builder commands will
-      require additional directories to be passed as arguments. By default
-      with this flag excluded torizoncore-builder is setup with Docker
-      volumes.
-
-  -s: select storage directory or Docker volume
-      Internal storage directory or Docker volume that TorizonCore Builder
-      should use to keep its state information and image customizations.
-      It must be an absolute directory or a Docker volume name. If this
-      flag is not set, the "storage" Docker volume will be used.
-
-  -n: do not enable "host" network mode.
-      Under Linux the tool runs in "host" network mode by default allowing
-      it to operate as a server without explicit port publishing. Under
-      Windows this mode of operation is always disabled requiring port
-      publishing to be set up if the tool is to act as a server. This flag
-      disables the default behavior (which is relevant under Linux).
-
-  -- <docker_options>: extra options to be passed to "docker run".
-       Parameters after -- are simply forwarded to the "docker run"
-       invocation in the alias that the script creates.
-
-  -h: help
-       Prints usage information.
+set -- -a remote -c -P
+. ./tcb-env-setup.sh
 ```
+
+Notice this overrides the current shell positional arguments.
+
+The `-P` switch causes the function being exported to be named `torizoncorebuilder` (without the dash character). Then, TorizonCore Builder could be run as so:
+
+```
+torizoncorebuilder --help
+```
+
+The **third limitation** means **child shells** would not see the invocation function defined by the setup script. To work around this, child shells can invoke TorizonCore Builder via the variable `TCB_COMMAND` which is also defined by the setup script. E.g.:
+
+```
+eval "${TCB_COMMAND}" --help
+```
+
+### With Zsh
+
+For **Zsh**, the setup script can be invoked in the same way as with Bash, that is:
+
+```bash
+. tcb-env-setup.sh -a remote -c
+```
+
+However, exporting functions through the environment is also not supported, like with POSIX shells. The solution is the same: from child shells, invoke TorizonCore Builder via `eval`:
+
+```
+eval "${TCB_COMMAND}" --help
+```
+
+## Early-Access Usage
+
+Toradex regularly publishes an early-access version of TorizonCore Builder. This version may contain bug fixes and features that are not yet officially released.
+
+Use it only when:
+
+- You are validating a fix provided by Toradex support.
+- You explicitly need an early-access feature (this is commonly the case with Torizon OS features that are in the early-access status).
+- You understand that behavior and interfaces may still change.
+
+To use it:
+
+```bash
+. tcb-env-setup.sh -t early-access
+```
+
+### Early-Access Notes
+
+- Early-access is not treated as the latest official release.
+- Shell completion may not be loaded for this tag.
+- New functionality in early-access may not yet be documented.
+
+## Options
+
+The script supports the following options:
+
+- `-a <local|remote>`
+  Select non-interactive auto mode.
+- `-t <version-tag>`
+  Select a specific image tag.
+- `-d`
+  Disable the default deployment volume.
+- `-s <storage>`
+  Use a specific storage location. This must be either:
+  an absolute directory path, or a Docker volume name.
+- `-n`
+  Disable `--network=host` on Linux.
+- `-c`
+  Disable shell completion loading.
+- `-P`
+  Export `torizoncorebuilder` instead of `torizoncore-builder`.
+- `-- <docker_options>`
+  Forward extra options directly to `docker run`.
+- `-h`
+  Show help.
+
+## Exported Commands and Variables
+
+After successful setup, the script exports a command function and some helper variables.
+
+- Function `torizoncore-builder` (or `torizoncorebuilder` when `-P` is passed):
+
+  This function wraps `docker run` and automatically adds `-i` and `-t` when the current terminal supports them.
+
+- Variable `TCB_COMMAND`:
+
+  `TCB_COMMAND` contains the full non-interactive `docker run` command line, excluding the arguments intended for TorizonCore Builder itself.
+
+  Example: display the help of the `platform` command:
+
+  ```bash
+  eval "${TCB_COMMAND}" platform --help
+  ```
+
+- Variables `TCB_COMMAND_BASE` and `TCB_COMMAND_ARGS`:
+
+  `TCB_COMMAND` is composed from these two variables.
+
+  - `TCB_COMMAND_BASE`: The base runtime command, typically `docker run`.
+  - `TCB_COMMAND_ARGS`: The generated Docker arguments plus the selected image reference.
+
+  Example: force TTY allocation manually when invoking the `images serve` command:
+
+  ```bash
+  eval "${TCB_COMMAND_BASE} -it ${TCB_COMMAND_ARGS}" images serve
+  ```
+
+## Completion Behavior
+
+If completion is enabled, the script tries to load the completion script automatically.
+
+Completion may be unavailable when:
+
+- Switch `-c` was passed.
+- The current shell is not `bash` or `zsh`.
+- The selected image tag is not the latest official release.
+- The completion script cannot be retrieved from the container image or fallback source.
+
+Completion is optional and does not affect the ability to run TorizonCore Builder itself.
+
+## Contributing
+
+See [CONTRIBUTING.md](/opt/shared/rborin/torgit/tcb-env-setup/CONTRIBUTING.md).
+
+## License
+
+This project is MIT licensed.
+
+This README document is Copyright (C) 2021 Toradex AG.

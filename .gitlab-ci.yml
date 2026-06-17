@@ -1,0 +1,52 @@
+image: debian:stable-slim
+
+stages:
+  - lint
+  - test
+
+lint:
+  stage: lint
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends shellcheck
+  script:
+    - scripts/lint.sh
+
+.shell_test:
+  stage: test
+  variables:
+    TEST_REPORT_DIR: "test-reports/${SHELL_UNDER_TEST}"
+  before_script:
+    - apt-get update
+    - apt-get install -y --no-install-recommends bash dash git ksh zsh ca-certificates util-linux
+    - tests/setup.sh
+    - mkdir -p "${TEST_REPORT_DIR}"
+  script:
+    - BATS_ARGS="--timing --report-formatter junit --output ${TEST_REPORT_DIR}" SHELL_UNDER_TEST="${SHELL_UNDER_TEST}" tests/run.sh
+  artifacts:
+    when: always
+    paths:
+      - ${TEST_REPORT_DIR}/report.xml
+    reports:
+      junit:
+        - ${TEST_REPORT_DIR}/report.xml
+
+test:bash:
+  extends: .shell_test
+  variables:
+    SHELL_UNDER_TEST: bash
+
+test:dash:
+  extends: .shell_test
+  variables:
+    SHELL_UNDER_TEST: dash
+
+test:zsh:
+  extends: .shell_test
+  variables:
+    SHELL_UNDER_TEST: zsh
+
+test:ksh:
+  extends: .shell_test
+  variables:
+    SHELL_UNDER_TEST: ksh

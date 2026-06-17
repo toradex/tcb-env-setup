@@ -1,0 +1,8 @@
+#!/bin/sh
+
+STUB_NAME=head
+. "$(dirname "$0")/stub-common.sh"
+
+stub_log "$*"
+
+printf '%s' "${TCB_STUB_HEAD_OUTPUT:-ABC}"

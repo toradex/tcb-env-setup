@@ -1,0 +1,8 @@
+#!/bin/sh
+
+STUB_NAME=cksum
+. "$(dirname "$0")/stub-common.sh"
+
+stub_log "$*"
+
+/usr/bin/cksum "$@"
