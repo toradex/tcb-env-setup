@@ -188,6 +188,12 @@ After successful setup, the script exports a command function and some helper va
 
   This function wraps `docker run` and automatically adds `-i` and `-t` when the current terminal supports them.
 
+  Arguments are forwarded to TorizonCore Builder exactly as typed, so spaces, semicolons, quotes and glob characters are preserved and no extra quoting is required:
+
+  ```bash
+  torizoncore-builder build --file "my config.yaml" --set "VAR=a;b"
+  ```
+
 - Variable `TCB_COMMAND`:
 
   `TCB_COMMAND` contains the full non-interactive `docker run` command line, excluding the arguments intended for TorizonCore Builder itself.
@@ -197,6 +203,8 @@ After successful setup, the script exports a command function and some helper va
   ```bash
   eval "${TCB_COMMAND}" platform --help
   ```
+
+  Note that `eval` makes the shell parse the arguments a second time, which breaks arguments containing spaces or other shell metacharacters; see the next item for a way around that.
 
 - Variables `TCB_COMMAND_BASE` and `TCB_COMMAND_ARGS`:
 
@@ -209,6 +217,18 @@ After successful setup, the script exports a command function and some helper va
 
   ```bash
   eval "${TCB_COMMAND_BASE} -it ${TCB_COMMAND_ARGS}" images serve
+  ```
+
+  Example: define a wrapper function that evaluates only the Docker part of the command line, leaving the arguments of TorizonCore Builder untouched:
+
+  ```bash
+  tcb() {
+      eval "set -- ${TCB_COMMAND_ARGS} \"\$@\""
+      eval "set -- ${TCB_COMMAND_BASE} \"\$@\""
+      "$@"
+  }
+
+  tcb build --file "my config.yaml"
   ```
 
 ## Completion Behavior
