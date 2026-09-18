@@ -157,6 +157,36 @@ teardown() {
     refute_output --partial "Run: torizoncore-builder -h"
 }
 
+@test "wrapper forwards arguments verbatim" {
+    local fn
+    fn=$(wrapper_function_name)
+
+    run_source_setup_with_body \
+        "${fn} build --file \"my config.yaml\" --set 'VAR=a;b' 'glob*'" \
+        -a local -c $(portable_args_if_needed)
+    assert_success
+
+    run cat "${TCB_STUB_ARGV_FILE}"
+    assert_line "<build>"
+    assert_line "<--file>"
+    assert_line "<my config.yaml>"
+    assert_line "<--set>"
+    assert_line "<VAR=a;b>"
+    assert_line "<glob*>"
+}
+
+@test "wrapper propagates the exit status of the runtime command" {
+    export TCB_STUB_DOCKER_RUN_RC=7
+    local fn
+    fn=$(wrapper_function_name)
+
+    run_source_setup_with_body \
+        "${fn} build; printf '__TCB_WRAPPER_STATUS__%s\\n' \"\$?\"" \
+        -a local -c $(portable_args_if_needed)
+    assert_success
+    assert_output --partial "__TCB_WRAPPER_STATUS__7"
+}
+
 @test "generated command variables are exported" {
     run_source_setup -a local -c $(portable_args_if_needed)
     assert_success

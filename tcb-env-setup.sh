@@ -559,31 +559,31 @@ _tcb_define_command() {
 
     export TCB_COMMAND_BASE TCB_COMMAND_ARGS TCB_COMMAND
 
-    if [ "${_TCB_FUNCTION_NAME}" = "torizoncorebuilder" ]; then
-        torizoncorebuilder() {
-            __tcb_flags=""
-            [ -t 0 ] && __tcb_flags="${__tcb_flags} -i"
-            [ -t 1 ] && [ -t 2 ] && __tcb_flags="${__tcb_flags} -t"
-            eval "${TCB_COMMAND_BASE}${__tcb_flags}${TCB_COMMAND_ARGS} $*"
-        }
-        if [ -n "${BASH_VERSION-}" ] || [ -n "${ZSH_VERSION-}" ]; then
-            # shellcheck disable=SC3045
-            export -f torizoncorebuilder 2>/dev/null || :
-        fi
-    elif [ -n "${BASH_VERSION-}" ] || [ -n "${ZSH_VERSION-}" ]; then
-        eval '
-        torizoncore-builder() {
-            __tcb_flags=""
-            [ -t 0 ] && __tcb_flags="${__tcb_flags} -i"
-            [ -t 1 ] && [ -t 2 ] && __tcb_flags="${__tcb_flags} -t"
-            eval "${TCB_COMMAND_BASE}${__tcb_flags}${TCB_COMMAND_ARGS} $*"
-        }
-        '
-        # shellcheck disable=SC3045
-        export -f torizoncore-builder 2>/dev/null || :
-    else
+    if [ "${_TCB_FUNCTION_NAME}" = "torizoncore-builder" ] && \
+       [ -z "${BASH_VERSION-}" ] && [ -z "${ZSH_VERSION-}" ]; then
         echo "Error: shell does not support function names with dashes. Re-run with -P to export torizoncorebuilder instead."
         return 1
+    fi
+
+    # The Docker arguments go through eval because they may hold constructs
+    # meant to be expanded at invocation time (e.g. "$(pwd)"). The user
+    # arguments are never evaluated: they are appended to the positional
+    # parameters as-is, so spaces, semicolons, quotes and globs reach the tool
+    # untouched.
+    # shellcheck disable=SC2016
+    _tcb_fn_body='() {
+        eval "set -- ${TCB_COMMAND_ARGS} \"\$@\""
+        [ -t 1 ] && [ -t 2 ] && set -- -t "$@"
+        [ -t 0 ] && set -- -i "$@"
+        eval "set -- ${TCB_COMMAND_BASE} \"\$@\""
+        "$@"
+    }'
+    eval "${_TCB_FUNCTION_NAME}${_tcb_fn_body}"
+    unset _tcb_fn_body
+
+    if [ -n "${BASH_VERSION-}" ] || [ -n "${ZSH_VERSION-}" ]; then
+        # shellcheck disable=SC2163,SC3045
+        export -f "${_TCB_FUNCTION_NAME}" 2>/dev/null || :
     fi
 
     return 0

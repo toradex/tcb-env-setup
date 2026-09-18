@@ -4,6 +4,7 @@ STUB_NAME=docker
 . "$(dirname "$0")/stub-common.sh"
 
 stub_log "$*"
+stub_log_argv "$@"
 
 subcommand=${1:-}
 shift || true
@@ -25,6 +26,9 @@ case "${subcommand}" in
                 ;;
             *" cat /opt/torizoncore-builder/completion-scripts/torizoncore-builder-completion.bash"*)
                 cat "${TCB_STUB_DOCKER_COMPLETION_FILE}"
+                ;;
+            *)
+                exit "${TCB_STUB_DOCKER_RUN_RC:-0}"
                 ;;
         esac
         ;;

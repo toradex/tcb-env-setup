@@ -25,6 +25,14 @@ shell_supports_dashed_function_name() {
     esac
 }
 
+wrapper_function_name() {
+    if shell_supports_dashed_function_name; then
+        printf '%s\n' "torizoncore-builder"
+    else
+        printf '%s\n' "torizoncorebuilder"
+    fi
+}
+
 shell_supports_exported_functions() {
     case "${SHELL_UNDER_TEST}" in
         bash|zsh|ksh) return 0 ;;
@@ -64,6 +72,7 @@ test_setup() {
     export PATH="${TEST_STUBS_DIR}:${PATH}"
     export TCB_TEST_ROOT="${BATS_TEST_TMPDIR}/sandbox"
     export TCB_STUB_LOG="${TCB_TEST_ROOT}/stub.log"
+    export TCB_STUB_ARGV_FILE="${TCB_TEST_ROOT}/stub-argv.log"
     export TCB_STUB_UNAME_R="${TCB_STUB_UNAME_R:-Linux}"
     export TCB_STUB_DOCKER_IMAGES_FILE="${TCB_STUB_DOCKER_IMAGES_FILE:-${TEST_FIXTURES_DIR}/local-tags-mixed.txt}"
     export TCB_STUB_DOCKER_PULL_RC="${TCB_STUB_DOCKER_PULL_RC:-0}"
@@ -78,6 +87,7 @@ test_setup() {
 
     mkdir -p "${TCB_TEST_ROOT}"
     : > "${TCB_STUB_LOG}"
+    : > "${TCB_STUB_ARGV_FILE}"
 }
 
 test_teardown() {
@@ -94,6 +104,8 @@ test_teardown() {
     unset TCB_STUB_CURL_COMPLETION_FILE
     unset TCB_STUB_CURL_UPDATE_FILE
     unset TCB_STUB_CURL_UPDATE_STATUS
+    unset TCB_STUB_ARGV_FILE
+    unset TCB_STUB_DOCKER_RUN_RC
     unset TCB_STUB_UNAME_R
     unset TCB_STUB_HEAD_OUTPUT
     unset TCB_STUB_OD_OUTPUT
